@@ -136,19 +136,13 @@ if __name__ == "__main__":
         help="Checkpoint path",
         default="deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
     )
-    parser.add_argument("-f", "--sample-input-file", type=str, default=None)
     parser.add_argument(
-        "-o", "--sample-output-file", type=str, default="gsm8k_res.jsonl"
+        "-o", "--sample-output-file", type=str, default="aime.jsonl"
     )
-    parser.add_argument("--use-fewshot", action="store_true")
 
     args = parser.parse_args()
 
-    # if args.sample_input_file is not None:
-    #     dataset = load_from_disk(args.sample_input_file)  # or:
-    # else:
-    #     dataset = load_dataset("gsm8k", "main")
-    
+    print("Loading dataset ...")
     dataset = load_2024_dataset()
 
     print("Loading tokenizer ...")
@@ -182,4 +176,3 @@ if __name__ == "__main__":
         acc_res.append(acc)
 
     f_output.close()
-    # print("4-shot Acc: " if args.use_fewshot else "Zero-shot Acc", np.mean(acc_res))
