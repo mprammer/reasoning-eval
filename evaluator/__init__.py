@@ -23,7 +23,7 @@ class Evaluator(object):
         Evaluate the model on the dataset.
         """
         output_info["generation_config"] = self.model.generation_config.to_dict()
-        for sample_problem, sample_answer in self.dataset:
+        for idx, (sample_problem, sample_answer) in enumerate(self.dataset):
             start_time = time()
             output_text, score, raw_text_len, gen_length = self.run_single(sample_problem, sample_answer)
             time_taken = time() - start_time
@@ -38,9 +38,7 @@ class Evaluator(object):
                     "gen_length": gen_length,
                     "time_taken": time_taken,
                 })
-            if self.verbose:
-                logger.info(f"Score: {score}, Raw text length: {raw_text_len}, Generated length: {gen_length}, time taken: {time_taken:.2f}s")
-            break  # Remove this break to evaluate all samples
+            logger.info(f"{idx}/{len(self.dataset)} Score: {score}, Raw text length: {raw_text_len}, Generated length: {gen_length}, time taken: {time_taken:.2f}s")
     
     def run_single(self, question: str, answer: str):
         context = self.prompt_template.format(Question=question)

@@ -46,7 +46,7 @@ if __name__ == "__main__":
     evaluator = get_evaluator(
         model_name=args.model_path,
         dataset_name=args.dataset_name,
-        verbose=True,
+        verbose=False,
     )
     
     evaluator.evaluate(output_info=output_info)
