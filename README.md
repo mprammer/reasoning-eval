@@ -3,7 +3,7 @@
 Usage:
 
 ```python
-python lm-eval.py --model-path [model path on HF] --dataset-name [dataset name]
+python lm-eval.py --model-path [model path on HF] --dataset-name [dataset name] --sample-output-file [json file name]
 ```
 
 Supported models:
