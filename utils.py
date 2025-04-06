@@ -4,6 +4,7 @@ from task import Dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.generation import GenerationConfig
 from typing import List, Dict, Tuple, Optional, Union
+from vllm import LLM, SamplingParams
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -20,13 +21,31 @@ def load_model(model_name: str):
         )
         model.generation_config.temperature = 0.6  
         model.generation_config.top_p = 0.95
-        model.generation_config.max_new_tokens = 32768 # 32768
+        model.generation_config.max_new_tokens = 8192 # 32768
         tokenizer = AutoTokenizer.from_pretrained(
             model_name, trust_remote_code=True, bf16=True, use_flash_attn=True
         )
         return model, tokenizer
     else:
         raise ValueError(f"Model {model_name} not supported.")
+    
+def load_vllm_model(model_name: str):
+    print(f"Loading vllm model and tokenizer for {model_name} ...")
+    if "deepseek-ai" in model_name: 
+        model = LLM(model=model_name, max_model_len=8192)
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name, trust_remote_code=True, bf16=True, use_flash_attn=True
+        )
+        generation_config = {
+            "temperature": 0.6,
+            "top_p": 0.95,
+            "max_tokens": 8192,
+            "n": 4,
+        }
+        return (model, generation_config), tokenizer
+    else:
+        raise ValueError(f"Model {model_name} not supported.")
+    
     
 def load_dataset(dataset_name):
     """
@@ -47,7 +66,7 @@ def get_evaluator(model_name: str, dataset_name: str, verbose: bool = False):
     """
 
     # Load the model and tokenizer
-    model, tokenizer = load_model(model_name)
+    model, tokenizer = load_vllm_model(model_name)
     # Load the dataset and prompt template
     dataset, prompt_template = load_dataset(dataset_name)
 

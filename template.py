@@ -1,6 +1,6 @@
 """
-This file contains the template for the math problem-solving task.
-The template is designed to guide the model in generating a structured and clear response to math problems.
+This file contains the template for the reasoning task.
+The template is designed to guide the model in generating a structured and clear response to math/code problems.
 It includes instructions for formatting the answer and ensuring clarity in the explanation.
 
 By CMU team

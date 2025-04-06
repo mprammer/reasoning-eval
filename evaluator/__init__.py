@@ -3,6 +3,7 @@ import torch
 import logging
 from time import time
 from typing import Dict, Optional
+from vllm import SamplingParams
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,6 +41,31 @@ class Evaluator(object):
                 })
             logger.info(f"{idx}/{len(self.dataset)} Score: {score}, Raw text length: {raw_text_len}, Generated length: {gen_length}, time taken: {time_taken:.2f}s")
     
+    def evaluate_vllm(self, output_info: Optional[Dict] = None):
+        """
+        Evaluate the model on the dataset.
+        """
+        output_info["generation_config"] = self.model[1]
+        for idx, (sample_problem, sample_answer) in enumerate(self.dataset):
+            start_time = time()
+            context, output_text, score, raw_text_len, gen_length = self.run_vllm_single(sample_problem, sample_answer)
+            time_taken = time() - start_time
+            if output_info is not None:
+                assert "instances" in output_info, "output_info must contain 'instances' key."
+                output_info["instances"].append({
+                    "question": sample_problem,
+                    "context": context,
+                    "answer": sample_answer,
+                    "output_text": output_text,
+                    "score": score,
+                    "raw_text_len": raw_text_len,
+                    "gen_length": gen_length,
+                    "time_taken": time_taken,
+                })
+                print(output_info)
+                exit(0)
+            logger.info(f"{idx}/{len(self.dataset)} Score: {score}, Raw text length: {raw_text_len}, Generated length: {gen_length}, time taken: {time_taken:.2f}s")
+    
     def run_single(self, question: str, answer: str):
         context = self.prompt_template.format(Question=question)
         input_ids = self.tokenizer.encode(context)
@@ -53,6 +79,32 @@ class Evaluator(object):
             logger.info(f"\nOutput text: {output_text}\n")
         score = self.dataset.is_correct(output_text, answer)
         return output_text, score, raw_text_len, gen_length
+    
+    def run_vllm_single(self, question: str, answer: str):
+        output_text = []
+        scores = []
+        gen_length = []
+        context = self.prompt_template.format(Question=question)
+        sampling_params = SamplingParams(**self.model[1])
+        outputs = self.model[0].generate([context], sampling_params)[0]
+        input_ids = self.tokenizer.encode(context)
+        raw_input_len = len(input_ids)
+        prompt = outputs.prompt
+        if self.verbose:
+            print(f"Prompt:    {prompt!r}")
+        for idx, output in enumerate(outputs.outputs):
+            generated_text = output.text
+            if self.verbose:
+                print(f"Output[{idx}]:    {generated_text!r}")
+                print("-" * 60)
+            output_ids = self.tokenizer.encode(generated_text)
+            raw_output_len = len(output_ids)
+            score = self.dataset.is_correct(generated_text, answer)
+            output_text.append(generated_text.strip())
+            gen_length.append(raw_output_len)
+            scores.append(score)
+        print(len(output_text), len(scores), len(gen_length))
+        return context, output_text, scores, raw_input_len, gen_length
     
     def decode(self, outputs, tokenizer, raw_text_len):
         new_tokens = outputs[0, raw_text_len:]
