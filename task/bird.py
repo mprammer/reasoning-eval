@@ -6,9 +6,9 @@ import logging
 from sqlite3 import connect as sqlite3_connect
 from os.path import realpath, abspath, join as path_join, exists, dirname
 from os import mkdir, scandir
-from urllib.request import urlretrieve
+from requests import get as requests_get
 from zipfile import ZipFile
-from shutil import copyfile
+from shutil import copyfile, copyfileobj
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -50,10 +50,12 @@ class BIRD(Dataset):
             if not exists(path_join(bird_dir, "train")):
                 # if decompressed data doesn't exist, check for BIRD download.
                 if not exists(path_join(bird_dir, "train.zip")):
-                    bird_dataset_url = "https://bird-bench.oss-cn-beijing.aliyuncs.com/train.zip"
                     # bird base download does not exist, downloading.
                     logging.info(f"Downloading BIRD dataset...")
-                    _downloaded_data = urlretrieve(bird_dataset_url, path_join(bird_dir, "train.zip"))
+                    bird_dataset_url = "https://bird-bench.oss-cn-beijing.aliyuncs.com/train.zip"
+                    with requests_get(bird_dataset_url, stream=True) as response:
+                        with open(path_join(bird_dir, "train.zip"), 'wb') as downloaded_file:
+                            copyfileobj(response.raw, downloaded_file)
                 with ZipFile(path_join(bird_dir, "train.zip")) as bird_main_zip:
                     # the zipfile "train.zip" stores all data in a "train" directory
                     # and a stray __MACOSX directory
