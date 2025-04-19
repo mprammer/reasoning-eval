@@ -123,8 +123,8 @@ class BIRD(Dataset):
 
         last_select = response.rfind("SELECT")
         last_semicolon = response.rfind(";")
-        query_extract_start = 0 if last_select == -1 else last_select
-        query_extract_end = len(response) if (last_semicolon < last_select) else last_semicolon
+        query_extract_start = 0 if (last_select == -1) else last_select
+        query_extract_end = len(response) if (last_semicolon <= last_select) else (last_semicolon + 1)
         clean_newlines = ' '.join(response[query_extract_start:query_extract_end].splitlines())
         return clean_newlines
 
