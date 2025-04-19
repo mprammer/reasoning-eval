@@ -5,8 +5,7 @@ from .base import Dataset
 import logging
 from sqlite3 import connect as sqlite3_connect
 from os.path import realpath, abspath, join as path_join, exists, dirname
-from os import mkdir, scandir
-from requests import get as requests_get
+from os import mkdir, scandir, system
 from zipfile import ZipFile
 from shutil import copyfile
 
@@ -40,28 +39,26 @@ class BIRD(Dataset):
         default_downloaded_resources_directory = path_join(dirname(abspath(realpath(__file__))), "..", "resources")
         if not exists(default_downloaded_resources_directory):
             mkdir(default_downloaded_resources_directory)
-        bird_dir = path_join(default_downloaded_resources_directory, "BIRD")
+        bird_dir = realpath(path_join(default_downloaded_resources_directory, "BIRD"))
         if not exists(bird_dir):
             mkdir(bird_dir)
-        gold_sql_path = path_join(bird_dir, "train_databases", "gold.txt")
+        gold_sql_path = realpath(path_join(bird_dir, "train_databases", "gold.txt"))
 
         # check if databases exist
         if not exists(path_join(bird_dir, "train_databases")):
             # outer databases directory doesn't exist, check for decompressed BIRD data
             if not exists(path_join(bird_dir, "train")):
                 # if decompressed data doesn't exist, check for BIRD download.
-                bird_dataset_dl_path = path_join(bird_dir, "train.zip")
-                if not exists(bird_dataset_dl_path ):
+                bird_dataset_dl_path = realpath(path_join(bird_dir, "train.zip"))
+                if not exists(bird_dataset_dl_path):
                     # bird base download does not exist, downloading.
                     logging.info(f"Downloading BIRD dataset...")
                     bird_dataset_url = "https://bird-bench.oss-cn-beijing.aliyuncs.com/train.zip"
-                    with requests_get(bird_dataset_url, stream=True) as response:
-                        with open(bird_dataset_dl_path , 'wb') as downloaded_file:
-                            # write the file in 16MB chunks
-                            for chunk in response.iter_content(chunk_size=16_777_216):
-                                downloaded_file.write(chunk)
-                    logging.info(f"BIRD dataset downloaded to: {bird_dataset_dl_path }")
-                logging.info(f"Unzipping downloaded BIRD dataset at: {bird_dataset_dl_path }")
+                    # the BIRD download seems to intermittently fail
+                    # using wget avoids the hassle of retrying
+                    system(f"wget {bird_dataset_url} -O {bird_dataset_dl_path}")
+                    logging.info(f"BIRD dataset downloaded to: {bird_dataset_dl_path}")
+                logging.info(f"Unzipping downloaded BIRD dataset at: {bird_dataset_dl_path}")
                 with ZipFile(bird_dataset_dl_path) as bird_main_zip:
                     # the zipfile "train.zip" stores all data in a "train" directory
                     # and a stray __MACOSX directory
@@ -106,8 +103,6 @@ class BIRD(Dataset):
         self.sampled_query_indices = sampled_query_indices
         self.bird_databases = bird_databases
         self.sql_to_database = sql_to_database
-
-
 
     def __iter__(self):
         """
