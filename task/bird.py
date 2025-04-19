@@ -8,7 +8,7 @@ from os.path import realpath, abspath, join as path_join, exists, dirname
 from os import mkdir, scandir
 from requests import get as requests_get
 from zipfile import ZipFile
-from shutil import copyfile, copyfileobj
+from shutil import copyfile
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -43,24 +43,31 @@ class BIRD(Dataset):
         bird_dir = path_join(default_downloaded_resources_directory, "BIRD")
         if not exists(bird_dir):
             mkdir(bird_dir)
+        gold_sql_path = path_join(bird_dir, "train_databases", "gold.txt")
 
         # check if databases exist
         if not exists(path_join(bird_dir, "train_databases")):
             # outer databases directory doesn't exist, check for decompressed BIRD data
             if not exists(path_join(bird_dir, "train")):
                 # if decompressed data doesn't exist, check for BIRD download.
-                if not exists(path_join(bird_dir, "train.zip")):
+                bird_dataset_dl_path = path_join(bird_dir, "train.zip")
+                if not exists(bird_dataset_dl_path ):
                     # bird base download does not exist, downloading.
                     logging.info(f"Downloading BIRD dataset...")
                     bird_dataset_url = "https://bird-bench.oss-cn-beijing.aliyuncs.com/train.zip"
                     with requests_get(bird_dataset_url, stream=True) as response:
-                        with open(path_join(bird_dir, "train.zip"), 'wb') as downloaded_file:
-                            copyfileobj(response.raw, downloaded_file)
-                with ZipFile(path_join(bird_dir, "train.zip")) as bird_main_zip:
+                        with open(bird_dataset_dl_path , 'wb') as downloaded_file:
+                            # write the file in 16MB chunks
+                            for chunk in response.iter_content(chunk_size=16_777_216):
+                                downloaded_file.write(chunk)
+                    logging.info(f"BIRD dataset downloaded to: {bird_dataset_dl_path }")
+                logging.info(f"Unzipping downloaded BIRD dataset at: {bird_dataset_dl_path }")
+                with ZipFile(bird_dataset_dl_path) as bird_main_zip:
                     # the zipfile "train.zip" stores all data in a "train" directory
                     # and a stray __MACOSX directory
                     logging.info(f"Extracting main BIRD compressed archive...")
                     bird_main_zip.extract(bird_main_zip.getinfo("train"), bird_dir)
+                    logging.info(f"Extracted BIRD compressed archive to: {bird_dir}/train/")
             # find the databases zip file in the BIRD directory
             if not exists(path_join(bird_dir, "train", "train_databases")):
                 # something went wrong if we arrived here.
@@ -70,23 +77,28 @@ class BIRD(Dataset):
                 # and another __MACOSX dir
                 logging.info(f"Extracting BIRD datasets compressed archive...")
                 bird_databases_zip.extract(bird_databases_zip.getinfo("train_databases"), bird_dir)
+                logging.info(f"Extracted BIRD compressed datasets to: {bird_dir}/train_datasets/")
             # while we're here, copy the gold answers file to the datasets file
-            copyfile(path_join(bird_dir, "train", "train_gold.sql"), path_join(bird_dir, "train_databases", "gold.txt"))
+            copyfile(path_join(bird_dir, "train", "train_gold.sql"), gold_sql_path)
+            logging.info(f"Copied gold sql file to: {gold_sql_path}")
+
         # find database files
         bird_databases = [x.name for x in scandir(path_join(bird_dir, "train_databases")) if x.is_dir()]
 
         # extract database associations from gold.txt
         query_index_to_database = {}
-        with open(path_join(bird_dir, "train_databases", "gold.txt")) as f:
+        with open(gold_sql_path) as f:
             for i, line in enumerate(f):
                 if i in sampled_query_indices:
                     _raw_query, a_database = line.rsplit("\t", maxsplit=1)
                     query_index_to_database[i] = a_database
                     if len(query_index_to_database.keys()) == len(sampled_query_indices):
+                        logging.info(f"Finished parsing \"{gold_sql_path}\" by line: {i}")
                         break
         sql_to_database = {}
         for local_idx, sampled_query_index in enumerate(sampled_query_indices):
             sql_to_database[dataset['output'][local_idx]] = query_index_to_database[sampled_query_index]
+
         # finalize
         logging.debug(f"BIRD Setup done. Found {len(bird_databases)} databases.")
         self.data = dataset
