@@ -157,8 +157,8 @@ class BIRD(Dataset):
                         return False
             return True
         except BaseException as e:
-            logging.info(f"Model produced an output that caused an exception.")
-            logging.info(f"gold: {answer}")
-            logging.info(f"response: {sql_response}")
+            # logging.info(f"Model produced an output that caused an exception.")
+            # logging.info(f"gold: {answer}")
+            # logging.info(f"response: {sql_response}")
             return False
 
