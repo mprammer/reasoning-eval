@@ -57,6 +57,11 @@ def load_dataset(dataset_name):
         from template import MATH_QUERY_TEMPLATE as template
         dataset = AIME()
         return dataset, template
+    elif dataset_name == "BIRD-SQL":
+        from task.bird import BIRD
+        from template import NL_TO_SQL_QUERY_TEMPLATE as template
+        dataset = BIRD()
+        return dataset, template
     else:
         raise ValueError(f"Dataset {dataset_name} not supported.")
     
