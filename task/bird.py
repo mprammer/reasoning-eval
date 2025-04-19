@@ -71,7 +71,7 @@ class BIRD(Dataset):
             # checking for databases directory
             if not exists(databases_path):
                 with ZipFile(path_join(bird_dir, "train", "train_databases.zip")) as bird_databases_zip:
-                    logging.info(f"Extracting BIRD databases compressed archive...")
+                    logging.info(f"Extracting BIRD databases compressed databases...")
                     bird_databases_zip.extractall(bird_dir)
                     logging.info(f"Extracted BIRD compressed databases to: {bird_dir}/train_databases/")
 
@@ -84,7 +84,7 @@ class BIRD(Dataset):
             for i, line in enumerate(f):
                 if i in sampled_query_indices:
                     _raw_query, a_database = line.rsplit("\t", maxsplit=1)
-                    query_index_to_database[i] = a_database
+                    query_index_to_database[i] = a_database.strip()
                     if len(query_index_to_database.keys()) == len(sampled_query_indices):
                         logging.info(f"Finished parsing \"{gold_sql_path}\" by line: {i}")
                         break
@@ -93,7 +93,7 @@ class BIRD(Dataset):
             sql_to_database[dataset['output'][local_idx]] = query_index_to_database[sampled_query_index]
 
         # finalize
-        logging.debug(f"BIRD Setup done. Found {len(bird_databases)} databases.")
+        logging.info(f"BIRD Setup done. Found {len(bird_databases)} databases: {', '.join(bird_databases)}")
         self.data = dataset
         self.bird_dir = bird_dir
         self.sampled_query_indices = sampled_query_indices
@@ -121,10 +121,10 @@ class BIRD(Dataset):
         if not response:
             return None
 
-        first_select = response.find("SELECT")
+        last_select = response.rfind("SELECT")
         last_semicolon = response.rfind(";")
-        query_extract_start = 0 if first_select == -1 else first_select
-        query_extract_end = len(response) if last_semicolon == -1 else last_semicolon
+        query_extract_start = 0 if last_select == -1 else last_select
+        query_extract_end = len(response) if (last_semicolon < last_select) else last_semicolon
         return response[query_extract_start:query_extract_end]
 
     def is_correct(self, completion, answer):
@@ -140,7 +140,7 @@ class BIRD(Dataset):
         # sql_gold = self.extract_answer(completion)
         # use the answer to get the sqlite database
         database_name = self.sql_to_database[answer]
-        database_path = path_join(self.bird_dir, "train_databases", database_name, f"{database_name}.sqlite")
+        database_path = realpath(path_join(self.bird_dir, "train_databases", database_name, f"{database_name}.sqlite"))
         database_connection = sqlite3_connect(database_path)
         # execute the gold and provided answers
         result_gold = database_connection.execute(answer).fetchall()
