@@ -7,7 +7,6 @@ from sqlite3 import connect as sqlite3_connect
 from os.path import realpath, abspath, join as path_join, exists, dirname
 from os import mkdir, scandir, system
 from zipfile import ZipFile
-from shutil import copyfile
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,42 +41,41 @@ class BIRD(Dataset):
         bird_dir = realpath(path_join(default_downloaded_resources_directory, "BIRD"))
         if not exists(bird_dir):
             mkdir(bird_dir)
-        gold_sql_path = realpath(path_join(bird_dir, "train_databases", "gold.txt"))
+        gold_sql_path = realpath(path_join(bird_dir, "train_gold.sql"))
+        databases_path = realpath(path_join(bird_dir, "train_databases"))
 
         # check if databases exist
-        if not exists(path_join(bird_dir, "train_databases")):
-            # outer databases directory doesn't exist, check for decompressed BIRD data
-            if not exists(path_join(bird_dir, "train")):
-                # if decompressed data doesn't exist, check for BIRD download.
-                bird_dataset_dl_path = realpath(path_join(bird_dir, "train.zip"))
-                if not exists(bird_dataset_dl_path):
-                    # bird base download does not exist, downloading.
-                    logging.info(f"Downloading BIRD dataset...")
-                    bird_dataset_url = "https://bird-bench.oss-cn-beijing.aliyuncs.com/train.zip"
-                    # the BIRD download seems to intermittently fail
-                    # using wget avoids the hassle of retrying
-                    system(f"wget {bird_dataset_url} -O {bird_dataset_dl_path}")
-                    logging.info(f"BIRD dataset downloaded to: {bird_dataset_dl_path}")
-                logging.info(f"Unzipping downloaded BIRD dataset at: {bird_dataset_dl_path}")
-                with ZipFile(bird_dataset_dl_path) as bird_main_zip:
-                    # the zipfile "train.zip" stores all data in a "train" directory
-                    # and a stray __MACOSX directory
-                    logging.info(f"Extracting main BIRD compressed archive...")
-                    bird_main_zip.extract(bird_main_zip.getinfo("train"), bird_dir)
-                    logging.info(f"Extracted BIRD compressed archive to: {bird_dir}/train/")
-            # find the databases zip file in the BIRD directory
-            if not exists(path_join(bird_dir, "train", "train_databases")):
-                # something went wrong if we arrived here.
-                logging.critical(f"Unable to find BIRD databases archive! Unable to validate queries!")
-            with ZipFile(path_join(bird_dir, "train", "train_databases.zip")) as bird_databases_zip:
-                # this zip file contains all database files in a "train_databases" directory
-                # and another __MACOSX dir
-                logging.info(f"Extracting BIRD datasets compressed archive...")
-                bird_databases_zip.extract(bird_databases_zip.getinfo("train_databases"), bird_dir)
-                logging.info(f"Extracted BIRD compressed datasets to: {bird_dir}/train_datasets/")
-            # while we're here, copy the gold answers file to the datasets file
-            copyfile(path_join(bird_dir, "train", "train_gold.sql"), gold_sql_path)
-            logging.info(f"Copied gold sql file to: {gold_sql_path}")
+        if not exists(databases_path) or not exists(gold_sql_path):
+            # missing files, proceed to check for all dependency files
+            # checking for original archive
+            bird_dataset_dl_path = realpath(path_join(bird_dir, "train.zip"))
+            if not exists(bird_dataset_dl_path):
+                # bird base download does not exist, downloading.
+                logging.info(f"Downloading BIRD dataset...")
+                bird_dataset_url = "https://bird-bench.oss-cn-beijing.aliyuncs.com/train.zip"
+                # the BIRD download seems to intermittently fail
+                # using wget avoids the hassle of retrying
+                system(f"wget {bird_dataset_url} -O {bird_dataset_dl_path}")
+                logging.info(f"BIRD dataset downloaded to: {bird_dataset_dl_path}")
+            # checking for gold solutions
+            if not exists(gold_sql_path):
+                with ZipFile(path_join(bird_dir, "train.zip")) as bird_databases_zip:
+                    bird_databases_zip.extract(bird_databases_zip.getinfo("train/train_gold.sql"), bird_dir)
+                    logging.info(f"Extracted BIRD gold sql to: {bird_dir}/train_gold.sql")
+            # checking for databases archive
+            if not exists(path_join(bird_dir, "train_databases.zip")):
+                with ZipFile(path_join(bird_dir, "train.zip")) as bird_databases_zip:
+                    logging.info(f"Extracting BIRD databases compressed archive...")
+                    bird_databases_zip.extract(bird_databases_zip.getinfo("train/train_databases.zip"), bird_dir)
+                    logging.info(f"Extracted BIRD compressed databases to: {bird_dir}/train_databases.zip")
+            # checking for databases directory
+            if not exists(databases_path):
+                with ZipFile(path_join(bird_dir, "train_databases.zip")) as bird_databases_zip:
+                    # this zip file contains all database files in a "train_databases" directory
+                    # and another __MACOSX dir
+                    logging.info(f"Extracting BIRD databases compressed archive...")
+                    bird_databases_zip.extract(bird_databases_zip.getinfo("train_databases"), bird_dir)
+                    logging.info(f"Extracted BIRD compressed databases to: {bird_dir}/train_databases/")
 
         # find database files
         bird_databases = [x.name for x in scandir(path_join(bird_dir, "train_databases")) if x.is_dir()]
