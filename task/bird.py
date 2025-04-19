@@ -125,7 +125,8 @@ class BIRD(Dataset):
         last_semicolon = response.rfind(";")
         query_extract_start = 0 if last_select == -1 else last_select
         query_extract_end = len(response) if (last_semicolon < last_select) else last_semicolon
-        return response[query_extract_start:query_extract_end]
+        clean_newlines = ' '.join(response[query_extract_start:query_extract_end].splitlines())
+        return clean_newlines
 
     def is_correct(self, completion, answer):
         """
@@ -144,13 +145,20 @@ class BIRD(Dataset):
         database_connection = sqlite3_connect(database_path)
         # execute the gold and provided answers
         result_gold = database_connection.execute(answer).fetchall()
-        result_response = database_connection.execute(sql_response).fetchall()
-        # compare answers
-        if len(result_gold) != len(result_response):
+        try:
+            result_response = database_connection.execute(sql_response).fetchall()
+            # compare answers
+            if len(result_gold) != len(result_response):
+                return False
+            else:
+                for a_tuple_gold, a_tuple_response in zip(result_gold, result_response):
+                    # tuple equality should work to verify the outputs
+                    if a_tuple_gold != a_tuple_response:
+                        return False
+            return True
+        except BaseException as e:
+            logging.info(f"Model produced an output that caused an exception.")
+            logging.info(f"gold: {answer}")
+            logging.info(f"response: {sql_response}")
             return False
-        else:
-            for a_tuple_gold, a_tuple_response in zip(result_gold, result_response):
-                # tuple equality should work to verify the outputs
-                if a_tuple_gold != a_tuple_response:
-                    return False
-        return True
+
