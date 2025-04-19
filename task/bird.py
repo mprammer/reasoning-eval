@@ -41,7 +41,7 @@ class BIRD(Dataset):
         bird_dir = realpath(path_join(default_downloaded_resources_directory, "BIRD"))
         if not exists(bird_dir):
             mkdir(bird_dir)
-        gold_sql_path = realpath(path_join(bird_dir, "train_gold.sql"))
+        gold_sql_path = realpath(path_join(bird_dir, "train", "train_gold.sql"))
         databases_path = realpath(path_join(bird_dir, "train_databases"))
 
         # check if databases exist
@@ -61,20 +61,18 @@ class BIRD(Dataset):
             if not exists(gold_sql_path):
                 with ZipFile(path_join(bird_dir, "train.zip")) as bird_databases_zip:
                     bird_databases_zip.extract(bird_databases_zip.getinfo("train/train_gold.sql"), bird_dir)
-                    logging.info(f"Extracted BIRD gold sql to: {bird_dir}/train_gold.sql")
+                    logging.info(f"Extracted BIRD gold sql to: {bird_dir}/train/train_gold.sql")
             # checking for databases archive
             if not exists(path_join(bird_dir, "train_databases.zip")):
                 with ZipFile(path_join(bird_dir, "train.zip")) as bird_databases_zip:
                     logging.info(f"Extracting BIRD databases compressed archive...")
                     bird_databases_zip.extract(bird_databases_zip.getinfo("train/train_databases.zip"), bird_dir)
-                    logging.info(f"Extracted BIRD compressed databases to: {bird_dir}/train_databases.zip")
+                    logging.info(f"Extracted BIRD compressed databases to: {bird_dir}/train/train_databases.zip")
             # checking for databases directory
             if not exists(databases_path):
-                with ZipFile(path_join(bird_dir, "train_databases.zip")) as bird_databases_zip:
-                    # this zip file contains all database files in a "train_databases" directory
-                    # and another __MACOSX dir
+                with ZipFile(path_join(bird_dir, "train", "train_databases.zip")) as bird_databases_zip:
                     logging.info(f"Extracting BIRD databases compressed archive...")
-                    bird_databases_zip.extract(bird_databases_zip.getinfo("train_databases"), bird_dir)
+                    bird_databases_zip.extractall(bird_dir)
                     logging.info(f"Extracted BIRD compressed databases to: {bird_dir}/train_databases/")
 
         # find database files
