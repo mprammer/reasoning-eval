@@ -41,7 +41,7 @@ class Evaluator(object):
                     "gen_length": gen_length,
                     "time_taken": time_taken,
                 })
-            logger.info(f"{idx}/{len(self.dataset)} Score: {score}, Raw text length: {raw_text_len}, Generated length: {gen_length}, time taken: {time_taken:.2f}s")
+            logger.info(f"{idx+1}/{len(self.dataset)} Score: {score}, Raw text length: {raw_text_len}, Generated length: {gen_length}, time taken: {time_taken:.2f}s")
     
     def evaluate_vllm(self, output_info: Optional[Dict] = None, sample_output_file: str = None):
         """
@@ -75,6 +75,7 @@ class Evaluator(object):
             logger.info(f"{idx}/{len(self.dataset)} Score: {score}, Raw text length: {raw_text_len}, Generated length: {gen_length}, time taken: {time_taken:.2f}s")
             with open(sample_output_file, "w") as f:
                 json.dump(output_info, f, indent=4)
+        return output_info
     
     def run_single(self, question: str, answer: str):
         context = self.prompt_template.format(Question=question)
