@@ -49,7 +49,7 @@ if __name__ == "__main__":
         verbose=True,
     )
     
-    evaluator.evaluate_vllm(output_info=output_info)
+    evaluator.evaluate_vllm(output_info=output_info, sample_output_file=args.sample_output_file)
     
     with open(args.sample_output_file, "w") as f:
         json.dump(output_info, f, indent=4)

@@ -4,6 +4,8 @@ import logging
 from time import time
 from typing import Dict, Optional
 from vllm import SamplingParams
+import json
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,12 +43,20 @@ class Evaluator(object):
                 })
             logger.info(f"{idx}/{len(self.dataset)} Score: {score}, Raw text length: {raw_text_len}, Generated length: {gen_length}, time taken: {time_taken:.2f}s")
     
-    def evaluate_vllm(self, output_info: Optional[Dict] = None):
+    def evaluate_vllm(self, output_info: Optional[Dict] = None, sample_output_file: str = None):
         """
         Evaluate the model on the dataset.
         """
+        start_idx = 0
         output_info["generation_config"] = self.model[1]
+        if os.path.isfile(sample_output_file):
+            logger.info(f"Loading existing output info from {sample_output_file}")
+            with open(sample_output_file, "r") as f:
+                output_info = json.load(f)
+                start_idx = len(output_info["instances"])
         for idx, (sample_problem, sample_answer) in enumerate(self.dataset):
+            if idx < start_idx:
+                continue
             start_time = time()
             context, output_text, score, raw_text_len, gen_length = self.run_vllm_single(sample_problem, sample_answer)
             time_taken = time() - start_time
@@ -62,9 +72,9 @@ class Evaluator(object):
                     "gen_length": gen_length,
                     "time_taken": time_taken,
                 })
-                print(output_info)
-                exit(0)
             logger.info(f"{idx}/{len(self.dataset)} Score: {score}, Raw text length: {raw_text_len}, Generated length: {gen_length}, time taken: {time_taken:.2f}s")
+            with open(sample_output_file, "w") as f:
+                json.dump(output_info, f, indent=4)
     
     def run_single(self, question: str, answer: str):
         context = self.prompt_template.format(Question=question)
@@ -103,7 +113,6 @@ class Evaluator(object):
             output_text.append(generated_text.strip())
             gen_length.append(raw_output_len)
             scores.append(score)
-        print(len(output_text), len(scores), len(gen_length))
         return context, output_text, scores, raw_input_len, gen_length
     
     def decode(self, outputs, tokenizer, raw_text_len):
