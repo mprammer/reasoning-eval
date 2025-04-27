@@ -7,7 +7,7 @@ import numpy as np
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="plot args.")
     parser.add_argument(
-        "-i", "--sample-input-file", type=str, default="aime.json"
+        "-i", "--sample-input-file", type=str, default="qwen-14b-aime.json"
     )
     args = parser.parse_args()
     

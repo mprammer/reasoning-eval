@@ -29,10 +29,10 @@ def load_model(model_name: str):
     else:
         raise ValueError(f"Model {model_name} not supported.")
     
-def load_vllm_model(model_name: str):
+def load_vllm_model(model_name: str, tensor_parallel_size: int=1):
     print(f"Loading vllm model and tokenizer for {model_name} ...")
     if "deepseek-ai" in model_name: 
-        model = LLM(model=model_name, max_model_len=8192)
+        model = LLM(model=model_name, max_model_len=8192, tensor_parallel_size=tensor_parallel_size)
         tokenizer = AutoTokenizer.from_pretrained(
             model_name, trust_remote_code=True, bf16=True, use_flash_attn=True
         )
@@ -60,13 +60,13 @@ def load_dataset(dataset_name):
     else:
         raise ValueError(f"Dataset {dataset_name} not supported.")
     
-def get_evaluator(model_name: str, dataset_name: str, verbose: bool = False):
+def get_evaluator(model_name: str, dataset_name: str, tensor_parallel_size: int = 1, verbose: bool = False):
     """
     Get the evaluator for the specified model and dataset.
     """
 
     # Load the model and tokenizer
-    model, tokenizer = load_vllm_model(model_name)
+    model, tokenizer = load_vllm_model(model_name, tensor_parallel_size)
     # Load the dataset and prompt template
     dataset, prompt_template = load_dataset(dataset_name)
 
