@@ -43,6 +43,20 @@ def load_vllm_model(model_name: str, tensor_parallel_size: int=1):
             "n": 4,
         }
         return (model, generation_config), tokenizer
+    elif "ExCoT" in model_name:
+        # Snowflake Text2SQL model
+        # see: https://huggingface.co/Snowflake/Llama-3.1-Arctic-ExCoT-70B
+        model = LLM(model=model_name, max_model_len=8192, tensor_parallel_size=tensor_parallel_size)
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name, trust_remote_code=True, bf16=True, use_flash_attn=True
+        )
+        generation_config = {
+            "temperature": 0.6,
+            "top_p": 0.95,
+            "max_tokens": 8192,
+            "n": 4,
+        }
+        return (model, generation_config), tokenizer
     else:
         raise ValueError(f"Model {model_name} not supported.")
     
