@@ -22,7 +22,7 @@ if __name__ == "__main__":
         "--model-path",
         type=str,
         help="Checkpoint path",
-        default="deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+        default="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
     )
     parser.add_argument(
         "-d",
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         default="AIME-2024",
     )
     parser.add_argument(
-        "-o", "--sample-output-file", type=str, default="aime.json"
+        "-o", "--sample-output-file", type=str, default="qwen-14b-aime.json"
     )
 
     args = parser.parse_args()
@@ -46,12 +46,10 @@ if __name__ == "__main__":
     evaluator = get_evaluator(
         model_name=args.model_path,
         dataset_name=args.dataset_name,
+        tensor_parallel_size=4,
         verbose=True,
     )
     
-    evaluator.evaluate_vllm(output_info=output_info)
-    
-    with open(args.sample_output_file, "w") as f:
-        json.dump(output_info, f, indent=4)
+    evaluator.evaluate_vllm(output_info=output_info, sample_output_file=args.sample_output_file)
     
     
