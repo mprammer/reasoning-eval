@@ -124,7 +124,9 @@ class BIRD(Dataset):
         first_cut_off = len(response)
         for a_cut_off_str in [
             '[ANS]',
+            '[ANSWER]',
             '[SOL]',
+            '[SOLUTION]',
         ]:
             if a_cut_off_str in response:
                 cut_off_substr_idx = response.find(a_cut_off_str)
