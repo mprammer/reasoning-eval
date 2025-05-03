@@ -127,7 +127,8 @@ class BIRD(Dataset):
             '[SOL]',
         ]:
             if a_cut_off_str in response:
-                first_cut_off = min(first_cut_off, response.find(a_cut_off_str))
+                cut_off_substr_idx = response.find(a_cut_off_str)
+                first_cut_off = min(first_cut_off, cut_off_substr_idx if (cut_off_substr_idx != -1) else len(response))
         response = response[:first_cut_off]
         # clean response
         response = (response
