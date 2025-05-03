@@ -120,6 +120,17 @@ class BIRD(Dataset):
         """
         if not response:
             return None
+        # some models box their response in " ``` " or similar.
+        # if two boxing strings exist, isolate the response to this segment
+        for a_boxing_str in [
+            '```'
+        ]:
+            if a_boxing_str in response:
+                last_boxing_str_idx = response.rfind(a_boxing_str)
+                if last_boxing_str_idx != -1:
+                    next_last_boxing_str_idx = response.rfind(a_boxing_str, 0, last_boxing_str_idx + 1)
+                    if next_last_boxing_str_idx != -1:
+                        response = response[next_last_boxing_str_idx: last_boxing_str_idx]
         # some models produce invalid output after an "end of answer" symbol. search for that here.
         first_cut_off = len(response)
         for a_cut_off_str in [
@@ -142,8 +153,9 @@ class BIRD(Dataset):
             '\t',
         ]:
             response = response.replace(a_substring, ' ')
-        # find first, possibly valid SQL output
+        # find the first possibly valid SQL output
         # using the last SELECT/semicolon may cause issues with subqueries.
+        # ideally, the earlier cleaning mitigates this issue
         first_select = response.find("SELECT")
         first_semicolon = response.find(";")
         query_extract_start = 0 if (first_select == -1) else first_select
