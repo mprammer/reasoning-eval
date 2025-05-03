@@ -120,11 +120,30 @@ class BIRD(Dataset):
         """
         if not response:
             return None
-
-        last_select = response.rfind("SELECT")
-        last_semicolon = response.rfind(";")
-        query_extract_start = 0 if (last_select == -1) else last_select
-        query_extract_end = len(response) if (last_semicolon <= last_select) else (last_semicolon + 1)
+        # some models produce invalid output after an "end of answer" symbol. search for that here.
+        first_cut_off = len(response)
+        for a_cut_off_str in [
+            '[ANS]',
+            '[SOL]',
+        ]:
+            if a_cut_off_str in response:
+                first_cut_off = min(first_cut_off, response.find(a_cut_off_str))
+        response = response[:first_cut_off]
+        # clean response
+        response = (response
+                    .replace(r'\n', ' ')
+                    .replace('\n', ' ')
+                    .replace(r'\r', ' ')
+                    .replace('\r', '')
+                    .replace(r'\t', ' ')
+                    .replace('\t', ' ')
+                    )
+        # find first, possibly valid SQL output
+        # using the last SELECT/semicolon may cause issues with subqueries.
+        first_select = response.find("SELECT")
+        first_semicolon = response.find(";")
+        query_extract_start = 0 if (first_select == -1) else first_select
+        query_extract_end = len(response) if (first_semicolon <= first_select) else (first_semicolon + 1)
         clean_newlines = ' '.join(response[query_extract_start:query_extract_end].splitlines())
         return clean_newlines
 
@@ -161,4 +180,3 @@ class BIRD(Dataset):
             # logging.info(f"gold: {answer}")
             # logging.info(f"response: {sql_response}")
             return False
-
