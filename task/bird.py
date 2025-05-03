@@ -131,14 +131,15 @@ class BIRD(Dataset):
                 first_cut_off = min(first_cut_off, cut_off_substr_idx if (cut_off_substr_idx != -1) else len(response))
         response = response[:first_cut_off]
         # clean response
-        response = (response
-                    .replace(r'\n', ' ')
-                    .replace('\n', ' ')
-                    .replace(r'\r', ' ')
-                    .replace('\r', '')
-                    .replace(r'\t', ' ')
-                    .replace('\t', ' ')
-                    )
+        for a_substring in [
+            r'\n',
+            '\n',
+            r'\r',
+            '\r',
+            r'\t',
+            '\t',
+        ]:
+            response = response.replace(a_substring, ' ')
         # find first, possibly valid SQL output
         # using the last SELECT/semicolon may cause issues with subqueries.
         first_select = response.find("SELECT")
