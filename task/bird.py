@@ -161,7 +161,7 @@ class BIRD(Dataset):
         query_extract_start = 0 if (first_select == -1) else first_select
         query_extract_end = len(response) if (first_semicolon <= first_select) else (first_semicolon + 1)
         clean_newlines = ' '.join(response[query_extract_start:query_extract_end].splitlines())
-        return clean_newlines
+        return clean_newlines.strip()
 
     def is_correct(self, completion, answer):
         """
@@ -187,9 +187,10 @@ class BIRD(Dataset):
                 # some of the queries have "LIMIT 1;" as part of the answer...
                 # but seem to not mention the limit in the natural language query text.
                 if len(result_gold) == 1 and len(result_response) != 1:
-                    if sql_response[-1] == ';':
-                        # try adding a LIMIT 1; to the end of the query
-                        sql_response = sql_response[:-1] + 'LIMIT 1;'
+                    # try adding a LIMIT 1; to the end of the query
+                    last_semicolon_idx = sql_response.rfind(";")
+                    if last_semicolon_idx != -1:
+                        sql_response = sql_response[:last_semicolon_idx] + 'LIMIT 1; '
                         result_response = database_connection.execute(sql_response).fetchall()
                         return result_gold[0] == result_response[0]
                     else:
