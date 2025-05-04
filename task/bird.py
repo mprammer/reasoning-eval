@@ -184,15 +184,24 @@ class BIRD(Dataset):
             result_response = database_connection.execute(sql_response).fetchall()
             # compare answers
             if len(result_gold) != len(result_response):
-                return False
+                # some of the queries have "LIMIT 1;" as part of the answer...
+                # but seem to not mention the limit in the natural language query text.
+                if len(result_gold) == 1 and len(result_response) != 1:
+                    if sql_response[-1] == ';':
+                        # try adding a LIMIT 1; to the end of the query
+                        sql_response = sql_response[:-1] + 'LIMIT 1;'
+                        result_response = database_connection.execute(sql_response).fetchall()
+                        return result_gold[0] == result_response[0]
+                    else:
+                        return False
+                else:
+                    return False
             else:
                 for a_tuple_gold, a_tuple_response in zip(result_gold, result_response):
                     # tuple equality should work to verify the outputs
                     if a_tuple_gold != a_tuple_response:
                         return False
             return True
-        except BaseException as e:
-            # logging.info(f"Model produced an output that caused an exception.")
-            # logging.info(f"gold: {answer}")
-            # logging.info(f"response: {sql_response}")
+        except BaseException as _ignored:
+            # model output caused an exception. invalid query
             return False
