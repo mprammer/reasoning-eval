@@ -14,7 +14,7 @@ Solve the following math problem efficiently and clearly.  The last line of your
 """.strip()
 
 NL_TO_SQL_QUERY_TEMPLATE = """
-Use the following SQL database schema and natural language query to create an SQL query. The last line of your response should be the SQL query. Think step-by-step before answering.
+Use the following SQL database schema and natural language query to create an SQL query. The last line of your response should be the SQL query. After your answer, provide a confidence score between 1 and 10 for your answer.
 
 {Question}
 """.strip()
